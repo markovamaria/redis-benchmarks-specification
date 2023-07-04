@@ -53,4 +53,6 @@ then
 fi
 
 
-echo --- Installation is finished ---
+echo --- Installation is finished, rebooting ... --
+sudo reboot
+
