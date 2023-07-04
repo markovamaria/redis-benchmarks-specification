@@ -26,7 +26,7 @@ then
     python3.10 -m venv env$BENCH_VERS
     source env$BENCH_VERS/bin/activate #- working in this environment.
 
-    sudo apt install docker.io -y
+    sudo DEBIAN_FRONTEND=noninteractive apt install docker.io -y
     #sudo apt install supervisor -y
     pip3 install -r req.txt
     # get latest or from master ( pip install git+https://github.com/redis/redis-benchmarks-specification.git)
