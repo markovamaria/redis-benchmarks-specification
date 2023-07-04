@@ -12,10 +12,17 @@ then
     exit
 fi
 
+if [ "$3" = ""]
+then
+    echo 3rd param - commit in format '1f76bb1'
+    exit
+fi
+
 export HOMEWD=$PWD
 export COMP=$1
 export OPTION=$2
-export EXP_BUILD="$COMP"_"$OPTION"
+export COMMIT=$3
+export EXP_BUILD="$COMP"_"$OPTION"_"$COMMIT"
 
 # ------------ run server ------------
 mkdir -p run_server_logs
