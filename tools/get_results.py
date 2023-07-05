@@ -28,12 +28,12 @@ def get_priorities(directory):
 #    return res_df
 
 
-def add_priority_v2(df):
+def add_priority_v2(df, N):
     directory_path = '../redis_benchmarks_specification/test-suites/' # relative path to test suites configs
     priority_map = get_priorities(directory_path)
 
     pfile = pd.DataFrame.from_dict(priority_map)
-    res_df =  df.reset_index().merge(pfile, left_on='Test Name', right_on='Test Name', how="left")[["Test Name", "Priority", "Run1", "Run2", "Run3",  "Diff *", "Average", "Min"]]
+    res_df =  df.reset_index().merge(pfile, left_on='Test Name', right_on='Test Name', how="left")[["Test Name", "Priority", *df.columns[:N],  "Diff *", "Average", "Min"]]
     return res_df
 
 def main():
@@ -66,7 +66,7 @@ def main():
     df.at['Geomean', 'Diff *'] = float(df.iloc[[-1],0:N].max(axis=1) / df.iloc[[-1],0:N].min(axis=1) - 1)
 
 
-    res_df = add_priority_v2(df)
+    res_df = add_priority_v2(df, N)
     res_df[:-1] = res_df[:-1].sort_values(by=["Priority", "Test Name"])
     print(res_df)
 
