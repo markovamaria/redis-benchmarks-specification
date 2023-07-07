@@ -41,14 +41,14 @@ fi
 
 if [ $1 = 'server' ] || [ $1 = 'all' ]
 then 
-    sudo apt install pkg-config
+    sudo DEBIAN_FRONTEND=noninteractive apt install pkg-config
     sudo apt install make
     sudo apt install numactl
     sudo apt install net-tools
 
     # install compilers:
     echo --- Instal GCC compiler ---
-    sudo apt install gcc
+    sudo DEBIAN_FRONTEND=noninteractive apt install gcc
     gcc --version
 fi
 

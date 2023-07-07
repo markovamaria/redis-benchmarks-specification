@@ -30,11 +30,14 @@ chmod +x ./r_servers/*
 
 # Vtune specific:
 . /opt/intel/oneapi/setvars.sh
-sudo su -
-0 > /proc/sys/kernel/perf_event_paranoid
-exit
+
+# Extra steps to do:
+# sudo su -
+# echo 0 > /proc/sys/kernel/perf_event_paranoid
+# exit
+# sudo usermod -aG vtune $USER
 
 # run server with vtune
-numactl --physcpubind=1 vtune -collect hotspots -knob sampling-mode=hw ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+numactl --physcpubind=1 vtune -collect hotspots -knob sampling-mode=hw -knob enable-stack-collection=true ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
 server_pid=$!
 echo $server_pid > server_pid
