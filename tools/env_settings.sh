@@ -21,7 +21,7 @@ sudo apt-get install iperf
 if [ $1 = 'client' ] || [ $1 = 'all' ]
 then 
     export BENCH_VERS=$2
-    sudo DEBIAN_FRONTEND=noninteractive apt install python3.11-full
+    sudo DEBIAN_FRONTEND=noninteractive apt install python3.11-full -y
     sudo apt install python3.11-venv
     python3.11 -m venv env$BENCH_VERS
     source env$BENCH_VERS/bin/activate #- working in this environment.
@@ -41,14 +41,14 @@ fi
 
 if [ $1 = 'server' ] || [ $1 = 'all' ]
 then 
-    sudo DEBIAN_FRONTEND=noninteractive apt install pkg-config
+    sudo DEBIAN_FRONTEND=noninteractive apt install pkg-config -y
     sudo apt install make
     sudo apt install numactl
     sudo apt install net-tools
 
     # install compilers:
     echo --- Instal GCC compiler ---
-    sudo DEBIAN_FRONTEND=noninteractive apt install gcc
+    sudo DEBIAN_FRONTEND=noninteractive apt install gcc -y
     gcc --version
 fi
 
