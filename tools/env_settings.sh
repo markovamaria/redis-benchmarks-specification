@@ -21,9 +21,9 @@ sudo apt-get install iperf
 if [ $1 = 'client' ] || [ $1 = 'all' ]
 then 
     export BENCH_VERS=$2
-    sudo DEBIAN_FRONTEND=noninteractive apt install python3.10-full
-    sudo apt install python3.10-venv
-    python3.10 -m venv env$BENCH_VERS
+    sudo DEBIAN_FRONTEND=noninteractive apt install python3.11-full
+    sudo apt install python3.11-venv
+    python3.11 -m venv env$BENCH_VERS
     source env$BENCH_VERS/bin/activate #- working in this environment.
 
     sudo DEBIAN_FRONTEND=noninteractive apt install docker.io -y
