@@ -1,31 +1,20 @@
 #!/bin/bash -x
-if [ "$1" = "" ] 
-then 
-    echo 1st param - compiler name, like 'gcc' / 'icx' / 'icc' / 'gcc-11' / 'clang-14'
-    exit
-fi
 
-if [ "$2" = "" ]
-then 
-    printf "2nd param - experiment name, like:\n
-    'default' / 'O3_flto' / 'O3_flto_deps' /\n
-    'O3' / 'O3_deps' / 'O2_flto' / 'O2_flto_deps' /\n
-    'O2' / 'O2_deps' / 'default_native' / 'O3_native' /\n
-    'O2_flto_native' / 'O3_flto_native' / 'default_native_deps' / 'O3_native_deps' /\n
-    'O2_flto_native_deps' / 'O3_flto_native_deps' / 'default_icelake' / 'O3_flto_debug' /\n
-    'fno_plt' / 'fno_sem' / 'fno_plt_fno_sem'  "
-    exit
-fi
+echo Parameters:
+echo 1st param - compiler name, like 'gcc' / 'icx' / 'icc' / 'gcc-11' / 'clang-14'
+printf "2nd param - experiment name, like:\n
+'default' / 'O3_flto' / 'O3_flto_deps' /\n
+'O3' / 'O3_deps' / 'O2_flto' / 'O2_flto_deps' /\n
+'O2' / 'O2_deps' / 'default_native' / 'O3_native' /\n
+'O2_flto_native' / 'O3_flto_native' / 'default_native_deps' / 'O3_native_deps' /\n
+'O2_flto_native_deps' / 'O3_flto_native_deps' / 'default_icelake' / 'O3_flto_debug' /\n
+'fno_plt' / 'fno_sem' / 'fno_plt_fno_sem'  "
+echo 3rd param - host type, like 'AWS' / 'BM'
+echo 4th param - commit in format '1f76bb1'
 
-if [ "$3" = "" ]
+if [ "$1" = "" ] || [ "$2" = "" ] || [ "$3" = "" ] || [ "$4" = "" ]
 then 
-    echo 3rd param - host type, like 'AWS' / 'BM'
-    exit
-fi
-
-if [ "$4" = "" ]
-then
-    echo 4th param - commit in format '1f76bb1'
+    echo Not enough input parameters, four of them is required. See above.
     exit
 fi
 
@@ -236,6 +225,16 @@ then
 fi
 cd redis_$EXP_BUILD && git checkout $COMMIT
 
+# ----------- INSTALL SECTION ----------#
+sudo DEBIAN_FRONTEND=noninteractive apt install pkg-config -y
+sudo apt install make
+sudo apt install numactl
+sudo apt install net-tools
+
+# install compilers:
+echo --- Instal GCC compiler ---
+sudo DEBIAN_FRONTEND=noninteractive apt install $COMP -y  # default gcc install is tested
+$COMP --version
 
 # ----------- BUILD SECTION ----------- #
 if [ "$OPTION" = "default" ]

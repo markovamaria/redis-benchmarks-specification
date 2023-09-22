@@ -7,11 +7,10 @@
 
 ### Option 1 : "server" and "client" is the same host. Includes environment preparation, build and run steps.
 ```bash
-    ./env_settings.sh all 72 |& tee env_all_72.log
+    ./configure_client.sh 72 |& tee configure_72.log
 ```
 
 * params:
-  * all - type "client and server"
   * 72 - redis-benchmarks-specification version
 
 ```bash
@@ -28,14 +27,7 @@
 
 ### Option 2: "server" and "client" are different hosts:
 
-#### Part 1: "server" part - prepare environment, build redis server, run server 
-
-```bash
-    ./env_settings.sh server 72 |& tee env_server_72.log
-```
-* params:
-  * server - type for "client" specific environment
-  * 72 - redis-benchmarks-specification version
+#### Part 1: "server" part - build redis server, run server
 
 ```bash
     cd redis_bench_fork/tools && ./build_script.sh gcc default AWS 6bf9b14 |& tee build_gcc_default_6bf9b14.log
@@ -55,10 +47,9 @@
 #### Part 2: "Client" part - prepare environment, run client (server should be run in parallel already)
 
 ```bash
-    ./env_settings.sh client 72 |& tee env_client_72.log
+    ./configure_client.sh 72 |& tee configure_72.log
 ```
 * params:
-  * client - type for "client" specific environment
   * 72 - redis-benchmarks-specification version
 
 ```bash
