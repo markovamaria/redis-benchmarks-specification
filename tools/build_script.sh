@@ -226,6 +226,7 @@ fi
 cd redis_$EXP_BUILD && git checkout $COMMIT
 
 # ----------- INSTALL SECTION ----------#
+sudo apt update
 sudo DEBIAN_FRONTEND=noninteractive apt install pkg-config -y
 sudo apt install make
 sudo apt install numactl
