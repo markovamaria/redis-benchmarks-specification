@@ -41,7 +41,7 @@ for instance in instances:
             host_pairs[pair_name]['client_type'] = instance.instance_type
             host_pairs[pair_name]['client_dns_name'] = instance.public_dns_name
         else:
-            if 'client_name' in host_pairs[pair_name]:
+            if 'server_name' in host_pairs[pair_name]:
                 print("ERROR, multiple servers with same pair # - ", name, "and", host_pairs[pair_name]['server_name'])
             host_pairs[pair_name]['server_name'] = name
             host_pairs[pair_name]['server_type'] = instance.instance_type
