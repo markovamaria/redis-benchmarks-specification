@@ -4,12 +4,23 @@ import time
 import boto3
 import string
 import signal
+import argparse
+
+
+# read argumnets from command line
+parser = argparse.ArgumentParser(description='Run testing on Running Pairs server and client in AWS EC2"')
+parser.add_argument('--clean', '-c', action='store_true', help='Clean all previously downloaded folders `redis_bench_fork` on all running clients and servers in AWS fitting to filter', required=False)
+parser.add_argument('--bench_version', '-v', type=str, help='Redis benchmark version, e.g. 72 (default)', required=False, default="72")
+parser.add_argument('--server_commit', type=str, help='Redis server commit, e.g. 2aad03f (default)', required=False, default="2aad03f")
+parser.add_argument('--runs', '-r', type=int, help='Number of runs, e.g. 3 (default)', required=False, default=3)
+
+args = parser.parse_args()
 
 # input parameters
-redis_bench_version = "72"
+redis_bench_version = args.bench_version
 # commit = "6bf9b14" # 29 Jun 2023
-commit = "2aad03f" # 21 Sept 2023
-num_runs = 3
+commit = args.server_commit # 21 Sept 2023
+num_runs = args.runs
 
 ssh_prefix = "ssh ubuntu@{} -i /home/mmarkova/.ssh/Maria_key_disruptor.pem -o StrictHostKeyChecking=no -o 'ProxyCommand=connect-proxy -S proxy-fm.intel.com:1080 %h %p'  -t "
 scp_prefix = "scp -i /home/mmarkova/.ssh/Maria_key_disruptor.pem -o StrictHostKeyChecking=no -o 'ProxyCommand=connect-proxy -S proxy-fm.intel.com:1080 %h %p' ubuntu@{}:/home/ubuntu/redis_bench_fork/tools/results_gcc_default.csv {}_results.csv"
@@ -38,15 +49,15 @@ for instance in instances:
             host_pairs[pair_name]['server_ip_address'] = instance.private_ip_address
 
 tests = list()
-if False:
+if args.clean:
     for pair_name in host_pairs:
         server = host_pairs[pair_name]['server_dns_name']
         client = host_pairs[pair_name]['client_dns_name']
         status = f"Remove: {pair_name}, server: {server}, client: {client}"
-        command = ssh_prefix.format(client) + "'mkdir -p old_run && mv redis_bench_fork/tools/runs_gcc_default/run_* old_run/'; rm -rf redis_bench_fork && sudo reboot'"
+        command = ssh_prefix.format(client) + f"'rm -rf redis_bench_fork && sudo reboot'"
         print('\t' + command)
         out, err = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-        command = ssh_prefix.format(server) + "'rm -rf redis_bench_fork && sudo reboot'"
+        command = ssh_prefix.format(server) + f"'rm -rf redis_bench_fork && sudo reboot'"
         print('\t' + command)
         out, err = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
     exit()
@@ -136,15 +147,3 @@ while len(tests) > 0:
     i += 1
 print("FINISHED")
 
-
-"""
-for server, client, pair_name in [("ec2-54-202-60-15.us-west-2.compute.amazonaws.com", "ec2-35-90-197-210.us-west-2.compute.amazonaws.com", "test1")]:
-    if host_pairs[pair_name]["client_proc"].poll() is not None:
-        host_pairs[pair_name]["server_proc"].kill()
-        host_pairs[pair_name]["server_log"].flush()
-        host_pairs[pair_name]["server_log"].close()
-        host_pairs[pair_name]["client_log"].flush()
-        host_pairs[pair_name]["client_log"].close()
-    else:
-        print(f"{pair_name} still running")
-"""
