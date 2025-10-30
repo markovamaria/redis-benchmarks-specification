@@ -7,7 +7,7 @@ fi
 
 if [ $1 = 'client' ] || [ $1 = 'all' ] && [ "$2" = "" ]
 then 
-    echo "2st param - redis-benchmarks version, e.g. 68"
+    echo "2st param - redis-benchmarks version, e.g. 0.1.68"
     exit
 fi
 
@@ -30,7 +30,7 @@ then
     #sudo apt install supervisor -y
     pip3 install -r req.txt
     # get latest or from master ( pip install git+https://github.com/redis/redis-benchmarks-specification.git)
-    pip3 install redis-benchmarks-specification==0.1.$BENCH_VERS # on fixed on July 6
+    pip3 install redis-benchmarks-specification==$BENCH_VERS # on fixed on July 6
     pip install pandas
     
     sudo groupadd docker # required on NEW host

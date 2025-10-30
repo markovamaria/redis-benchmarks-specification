@@ -14,7 +14,7 @@ fi
 
 if [ "$3" = "" ]
 then 
-    echo "2nd param - redis-benchmarks version, e.g. 68"
+    echo "2nd param - redis-benchmarks version, e.g. 0.1.68"
     exit
 fi
 if [ "$4" = "" ]

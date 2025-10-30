@@ -7,21 +7,21 @@
 
 ### Option 1 : "server" and "client" is the same host. Includes environment preparation, build and run steps.
 ```bash
-    ./configure_client.sh 72 |& tee configure_72.log
+    ./configure_client.sh 0.1.72 |& tee configure_0.1.72.log
 ```
 
 * params:
-  * 72 - redis-benchmarks-specification version
+  * 0.1.72 - redis-benchmarks-specification version
 
 ```bash
     cd redis_bench_fork/tools && ./build_script.sh gcc default AWS 6bf9b14 |& tee build_gcc_default_6bf9b14.log
-    ./run_script.sh gcc default 72 3 6bf9b14 |& tee run_script_gcc_default_6bf9b14.log
+    ./run_script.sh gcc default 0.1.72 3 6bf9b14 |& tee run_script_gcc_default_6bf9b14.log
 ```
 
 * params:
   * default - option to compile redis
   * gcc - compiler to compile redis
-  * 72 - as above
+  * 0.1.72 - as above
   * 3 - number of runs
   * 6bf9b14 - redis version to test 
 
@@ -47,18 +47,18 @@
 #### Part 2: "Client" part - prepare environment, run client (server should be run in parallel already)
 
 ```bash
-    ./configure_client.sh 72 |& tee configure_72.log
+    ./configure_client.sh 0.1.72 |& tee configure_0.1.72.log
 ```
 * params:
-  * 72 - redis-benchmarks-specification version
+  * 0.1.72 - redis-benchmarks-specification version
 
 ```bash
-    cd redis_bench_fork/tools && ./run_client.sh gcc default 72 5 INT_IP |& tee run_client_gcc_default_6bf9b14.log
+    cd redis_bench_fork/tools && ./run_client.sh gcc default 0.1.72 5 INT_IP |& tee run_client_gcc_default_6bf9b14.log
 ```
 
 * params:
   * gcc - compiler to compile redis
   * default - option to compile redis
   * 5 - number of runs
-  * 72 - redis-benchmarks-specification version
+  * 0.1.72 - redis-benchmarks-specification version
   * INT_IP - ip of server (internal IP for GCP, private IP for AWS)
