@@ -18,7 +18,7 @@ sudo apt-get install iperf
 #supervisorctl stop 
 
 sudo DEBIAN_FRONTEND=noninteractive apt install python3.11-full -y
-sudo apt install python3.11-venv
+sudo apt install python3.11-venv python3.11-dev
 python3.11 -m venv env$BENCH_VERS
 source env$BENCH_VERS/bin/activate #- working in this environment.
 
