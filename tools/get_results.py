@@ -70,7 +70,20 @@ def main():
     res_df[:-1] = res_df[:-1].sort_values(by=["Priority", "Test Name"])
     print(res_df)
 
-    res_df.to_csv('results_' + exp_type + ".csv", index=False)
+
+    # Save results file
+    results_filename = f'results_{exp_type}.csv'
+    res_df.to_csv(results_filename, index=False)
+
+    # Copy results file to runs_<exp_type> folder
+    runs_folder = f'runs_{exp_type}'
+    if os.path.isdir(runs_folder):
+        import shutil
+        dest_path = os.path.join(runs_folder, results_filename)
+        shutil.copyfile(results_filename, dest_path)
+        print(f"Copied {results_filename} to {dest_path}")
+    else:
+        print(f"Warning: {runs_folder} does not exist. Results file not copied.")
 
     # with open('server_pid') as f:
         # server_pid=f.readline().strip('\n')

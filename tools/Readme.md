@@ -62,3 +62,8 @@
   * 5 - number of runs
   * 0.1.72 - redis-benchmarks-specification version
   * INT_IP - ip of server (internal IP for GCP, private IP for AWS)
+
+#### Results
+Combination of results from all runs are saving to file "results_EXPERIMENT_NAME.csv" and located in runs* folder. 
+You can use compare_results.py to get comparison for few final results files created by get_results.py (run in run_script.sh)
+
