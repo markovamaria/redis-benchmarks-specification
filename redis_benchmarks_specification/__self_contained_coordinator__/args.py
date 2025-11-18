@@ -1,5 +1,5 @@
 import argparse
-
+import os
 from redis_benchmarks_specification.__common__.env import (
     MACHINE_CPU_COUNT,
     SPECS_PATH_SETUPS,
@@ -20,16 +20,25 @@ from redis_benchmarks_specification.__common__.env import (
     ALLOWED_PROFILERS,
 )
 
+PERFORMANCE_GH_TOKEN = os.getenv("PERFORMANCE_GH_TOKEN", None)
+
 
 def create_self_contained_coordinator_args(project_name):
     parser = argparse.ArgumentParser(
         description=project_name,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=project_name,
+        help="Show version information and exit",
+    )
     parser.add_argument("--event_stream_host", type=str, default=GH_REDIS_SERVER_HOST)
     parser.add_argument("--event_stream_port", type=int, default=GH_REDIS_SERVER_PORT)
     parser.add_argument("--event_stream_pass", type=str, default=GH_REDIS_SERVER_AUTH)
     parser.add_argument("--event_stream_user", type=str, default=GH_REDIS_SERVER_USER)
+    parser.add_argument("--github_token", type=str, default=PERFORMANCE_GH_TOKEN)
     parser.add_argument(
         "--cpu-count",
         type=int,
@@ -149,5 +158,53 @@ def create_self_contained_coordinator_args(project_name):
     )
     parser.add_argument(
         "--arch", type=str, default="amd64", help="arch to build artifacts"
+    )
+    parser.add_argument(
+        "--tests-priority-lower-limit",
+        type=int,
+        default=0,
+        help="Run a subset of the tests based uppon a preset priority. By default runs all tests.",
+    )
+    parser.add_argument(
+        "--tests-priority-upper-limit",
+        type=int,
+        default=100000,
+        help="Run a subset of the tests based uppon a preset priority. By default runs all tests.",
+    )
+    parser.add_argument(
+        "--topology",
+        type=str,
+        default="",
+        help="Filter tests to run only with the specified topology (e.g. oss-standalone)",
+    )
+    parser.add_argument(
+        "--exclusive-hardware",
+        default=False,
+        action="store_true",
+        help="Enable exclusive hardware mode. Kills all memtier processes and stops all docker containers before and after each test.",
+    )
+    parser.add_argument(
+        "--http-port",
+        type=int,
+        default=8080,
+        help="Port for HTTP server endpoints (/ping health check and /reset-queue POST endpoint).",
+    )
+    parser.add_argument(
+        "--http-auth-username",
+        type=str,
+        default=None,
+        help="Username for HTTP endpoint authentication. HTTP server is disabled if not provided.",
+    )
+    parser.add_argument(
+        "--http-auth-password",
+        type=str,
+        default=None,
+        help="Password for HTTP endpoint authentication. HTTP server is disabled if not provided.",
+    )
+    parser.add_argument(
+        "--skip-clear-pending-on-startup",
+        default=False,
+        action="store_true",
+        help="Skip automatically clearing pending messages and resetting consumer group position on startup. By default, pending messages are cleared and consumer group is reset to latest position to skip old work and recover from crashes.",
     )
     return parser

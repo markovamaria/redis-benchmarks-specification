@@ -23,6 +23,7 @@ def data_prepopulation_step(
     port,
     temporary_dir,
     test_name,
+    redis_password,
 ):
     # setup the benchmark
     (
@@ -43,13 +44,17 @@ def data_prepopulation_step(
     full_benchmark_path = "/usr/local/bin/{}".format(preload_tool)
     client_mnt_point = "/mnt/client/"
     if "memtier_benchmark" in preload_tool:
-        (_, preload_command_str,) = prepare_memtier_benchmark_parameters(
+        (
+            _,
+            preload_command_str,
+        ) = prepare_memtier_benchmark_parameters(
             benchmark_config["dbconfig"]["preload_tool"],
             full_benchmark_path,
             port,
             "localhost",
             local_benchmark_output_filename,
             False,
+            redis_password,
         )
 
         logging.info(

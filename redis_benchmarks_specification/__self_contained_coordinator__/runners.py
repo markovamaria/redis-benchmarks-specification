@@ -20,6 +20,12 @@ from redisbench_admin.profilers.profilers_local import (
     profilers_start_if_required,
     profilers_stop_if_required,
 )
+
+from redisbench_admin.profilers.profilers_local import (
+    local_profilers_platform_checks,
+    profilers_start_if_required,
+    profilers_stop_if_required,
+)
 from redisbench_admin.run.common import (
     get_start_time_vars,
     prepare_benchmark_parameters,
@@ -32,13 +38,13 @@ from redisbench_admin.run.redistimeseries import (
 from redisbench_admin.run.run import calculate_client_tool_duration_and_check
 from redisbench_admin.utils.benchmark_config import (
     get_final_benchmark_config,
-    extract_redis_dbconfig_parameters,
 )
 from redisbench_admin.utils.local import get_local_run_full_filename
 from redisbench_admin.utils.results import post_process_benchmark_results
 
 from redis_benchmarks_specification.__common__.env import (
     STREAM_KEYNAME_NEW_BUILD_EVENTS,
+    get_arch_specific_stream_name,
     STREAM_GH_NEW_BUILD_RUNNERS_CG,
     S3_BUCKET_NAME,
 )
@@ -47,6 +53,7 @@ from redis_benchmarks_specification.__common__.spec import (
     extract_client_cpu_limit,
     extract_client_tool,
     extract_client_container_image,
+    extract_redis_dbconfig_parameters,
 )
 from redis_benchmarks_specification.__self_contained_coordinator__.artifacts import (
     restore_build_artifacts_from_test_details,
@@ -56,6 +63,7 @@ from redis_benchmarks_specification.__self_contained_coordinator__.build_info im
 )
 from redis_benchmarks_specification.__self_contained_coordinator__.clients import (
     prepare_memtier_benchmark_parameters,
+    prepare_vector_db_benchmark_parameters,
 )
 from redis_benchmarks_specification.__self_contained_coordinator__.cpuset import (
     extract_db_cpu_limit,
@@ -70,12 +78,16 @@ from redis_benchmarks_specification.__self_contained_coordinator__.prepopulation
 )
 
 
-def build_runners_consumer_group_create(conn, running_platform, id="$"):
+def build_runners_consumer_group_create(conn, running_platform, arch="amd64", id="$"):
     consumer_group_name = get_runners_consumer_group_name(running_platform)
+    arch_specific_stream = get_arch_specific_stream_name(arch)
     logging.info("Will use consumer group named {}.".format(consumer_group_name))
+    logging.info(
+        "Will read from architecture-specific stream: {}.".format(arch_specific_stream)
+    )
     try:
         conn.xgroup_create(
-            STREAM_KEYNAME_NEW_BUILD_EVENTS,
+            arch_specific_stream,
             consumer_group_name,
             mkstream=True,
             id=id,
@@ -98,6 +110,80 @@ def get_runners_consumer_group_name(running_platform):
     return consumer_group_name
 
 
+def clear_pending_messages_for_consumer(
+    conn, running_platform, consumer_pos, arch="amd64"
+):
+    """Clear all pending messages for a specific consumer on startup"""
+    consumer_group_name = get_runners_consumer_group_name(running_platform)
+    consumer_name = "{}-self-contained-proc#{}".format(
+        consumer_group_name, consumer_pos
+    )
+    arch_specific_stream = get_arch_specific_stream_name(arch)
+    logging.info(
+        f"Clearing pending messages from architecture-specific stream: {arch_specific_stream}"
+    )
+
+    try:
+        # Get pending messages for this specific consumer
+        pending_info = conn.xpending_range(
+            arch_specific_stream,
+            consumer_group_name,
+            min="-",
+            max="+",
+            count=1000,  # Get up to 1000 pending messages
+            consumername=consumer_name,
+        )
+
+        if pending_info:
+            message_ids = [msg["message_id"] for msg in pending_info]
+            logging.info(
+                f"Found {len(message_ids)} pending messages for consumer {consumer_name}. Clearing them..."
+            )
+
+            # Acknowledge all pending messages to clear them
+            ack_count = conn.xack(
+                arch_specific_stream, consumer_group_name, *message_ids
+            )
+
+            logging.info(
+                f"Successfully cleared {ack_count} pending messages for consumer {consumer_name}"
+            )
+        else:
+            logging.info(f"No pending messages found for consumer {consumer_name}")
+
+    except redis.exceptions.ResponseError as e:
+        if "NOGROUP" in str(e):
+            logging.info(f"Consumer group {consumer_group_name} does not exist yet")
+        else:
+            logging.warning(f"Error clearing pending messages: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error clearing pending messages: {e}")
+
+
+def reset_consumer_group_to_latest(conn, running_platform, arch="amd64"):
+    """Reset the consumer group position to only read new messages (skip old ones)"""
+    consumer_group_name = get_runners_consumer_group_name(running_platform)
+    arch_specific_stream = get_arch_specific_stream_name(arch)
+    logging.info(
+        f"Resetting consumer group position for architecture-specific stream: {arch_specific_stream}"
+    )
+
+    try:
+        # Set the consumer group position to '$' (latest) to skip all existing messages
+        conn.xgroup_setid(arch_specific_stream, consumer_group_name, id="$")
+        logging.info(
+            f"Reset consumer group {consumer_group_name} position to latest on stream {arch_specific_stream} - will only process new messages"
+        )
+
+    except redis.exceptions.ResponseError as e:
+        if "NOGROUP" in str(e):
+            logging.info(f"Consumer group {consumer_group_name} does not exist yet")
+        else:
+            logging.warning(f"Error resetting consumer group position: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error resetting consumer group position: {e}")
+
+
 def process_self_contained_coordinator_stream(
     conn,
     datasink_push_results_redistimeseries,
@@ -117,9 +203,12 @@ def process_self_contained_coordinator_stream(
     verbose=False,
     run_tests_with_dataset=False,
 ):
+    # Use a default password for coordinator Redis instances
+    redis_password = "redis_coordinator_password_2024"
     stream_id = "n/a"
     overall_result = False
     total_test_suite_runs = 0
+    full_result_path = None
     try:
         stream_id, testDetails = newTestInfo[0][1][0]
         stream_id = stream_id.decode()
@@ -163,7 +252,7 @@ def process_self_contained_coordinator_stream(
 
                 with open(test_file, "r") as stream:
                     result, benchmark_config, test_name = get_final_benchmark_config(
-                        None, stream, ""
+                        None, None, stream, ""
                     )
                     if result is False:
                         logging.error(
@@ -274,6 +363,7 @@ def process_self_contained_coordinator_stream(
                                     redis_proc_start_port,
                                     run_image,
                                     temporary_dir,
+                                    redis_password,
                                 )
                             else:
                                 shard_count = 1
@@ -305,11 +395,19 @@ def process_self_contained_coordinator_stream(
                                         )
                                     )
 
-                            r = redis.StrictRedis(port=redis_proc_start_port)
+                            r = redis.StrictRedis(
+                                port=redis_proc_start_port, password=redis_password
+                            )
                             r.ping()
                             redis_pids = []
-                            first_redis_pid = r.info()["process_id"]
-                            redis_pids.append(first_redis_pid)
+                            redis_info = r.info()
+                            first_redis_pid = redis_info.get("process_id")
+                            if first_redis_pid is not None:
+                                redis_pids.append(first_redis_pid)
+                            else:
+                                logging.warning(
+                                    "Redis process_id not found in INFO command"
+                                )
                             ceil_client_cpu_limit = extract_client_cpu_limit(
                                 benchmark_config
                             )
@@ -332,6 +430,7 @@ def process_self_contained_coordinator_stream(
                                     redis_proc_start_port,
                                     temporary_dir,
                                     test_name,
+                                    redis_password,
                                 )
 
                             logging.info(
@@ -346,9 +445,12 @@ def process_self_contained_coordinator_stream(
                             # backwards compatible
                             if benchmark_tool is None:
                                 benchmark_tool = "redis-benchmark"
-                            full_benchmark_path = "/usr/local/bin/{}".format(
-                                benchmark_tool
-                            )
+                            if benchmark_tool == "vector_db_benchmark":
+                                full_benchmark_path = "python /code/run.py"
+                            else:
+                                full_benchmark_path = "/usr/local/bin/{}".format(
+                                    benchmark_tool
+                                )
 
                             # setup the benchmark
                             (
@@ -369,7 +471,30 @@ def process_self_contained_coordinator_stream(
                                     local_benchmark_output_filename
                                 )
                             )
-                            if "memtier_benchmark" not in benchmark_tool:
+                            if "memtier_benchmark" in benchmark_tool:
+                                (
+                                    _,
+                                    benchmark_command_str,
+                                ) = prepare_memtier_benchmark_parameters(
+                                    benchmark_config["clientconfig"],
+                                    full_benchmark_path,
+                                    redis_proc_start_port,
+                                    "localhost",
+                                    local_benchmark_output_filename,
+                                    benchmark_tool_workdir,
+                                    redis_password,
+                                )
+                            elif "vector_db_benchmark" in benchmark_tool:
+                                (
+                                    _,
+                                    benchmark_command_str,
+                                ) = prepare_vector_db_benchmark_parameters(
+                                    benchmark_config["clientconfig"],
+                                    full_benchmark_path,
+                                    redis_proc_start_port,
+                                    "localhost",
+                                )
+                            else:
                                 # prepare the benchmark command
                                 (
                                     benchmark_command,
@@ -383,18 +508,6 @@ def process_self_contained_coordinator_stream(
                                     False,
                                     benchmark_tool_workdir,
                                     False,
-                                )
-                            else:
-                                (
-                                    _,
-                                    benchmark_command_str,
-                                ) = prepare_memtier_benchmark_parameters(
-                                    benchmark_config["clientconfig"],
-                                    full_benchmark_path,
-                                    redis_proc_start_port,
-                                    "localhost",
-                                    local_benchmark_output_filename,
-                                    benchmark_tool_workdir,
                                 )
 
                             client_container_image = extract_client_container_image(
@@ -456,7 +569,10 @@ def process_self_contained_coordinator_stream(
                                 )
                             r.shutdown(save=False)
 
-                            (_, overall_tabular_data_map,) = profilers_stop_if_required(
+                            (
+                                _,
+                                overall_tabular_data_map,
+                            ) = profilers_stop_if_required(
                                 datasink_push_results_redistimeseries,
                                 benchmark_duration_seconds,
                                 collection_summary_str,
@@ -584,6 +700,9 @@ def process_self_contained_coordinator_stream(
                                 metadata,
                                 build_variant_name,
                                 running_platform,
+                                None,
+                                None,
+                                disable_target_tables=True,
                             )
                             test_result = True
                             total_test_suite_runs = total_test_suite_runs + 1

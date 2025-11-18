@@ -1,6 +1,7 @@
 version: 0.4
 name: memtier_benchmark-1key-set-2M-elements-sadd-increasing
-description: 'Runs memtier_benchmark, for a keyspace length of 1 SET key with 2M elements at the end of benchmark.'
+description: Runs memtier_benchmark, for a keyspace length of 1 SET key with 2M elements
+  at the end of benchmark.
 dbconfig:
   configuration-parameters:
     save: '""'
@@ -16,11 +17,14 @@ tested-commands:
 redis-topologies:
 - oss-standalone
 build-variants:
-- gcc:8.5.0-amd64-debian-buster-default
+- gcc:15.2.0-amd64-debian-bookworm-default
+- gcc:15.2.0-arm64-debian-bookworm-default
+- dockerhub
 clientconfig:
   run_image: redislabs/memtier_benchmark:edge
   tool: memtier_benchmark
-  arguments: --command="SADD myset __key__" --command-key-pattern=P --key-maximum 2000000 --key-prefix "" -n 1000000 -c 5 -t 4 --hide-histogram
+  arguments: --command="SADD myset __key__" --command-key-pattern=P --key-maximum
+    2000000 --key-prefix "" -n 1000000 -c 5 -t 4 --hide-histogram
   resources:
     requests:
       cpus: '4'

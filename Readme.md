@@ -76,6 +76,7 @@ Before package's installation, please install its' dependencies.
 # install pip installer for python3
 sudo apt install python3-pip -y
 sudo pip3 install --upgrade pip
+sudo pip3 install pyopenssl --upgrade
 
 # install docker
 sudo apt install docker.io -y
@@ -386,6 +387,12 @@ $ tox
 To run a specific test:
 ```sh
 $ tox -- utils/tests/test_runner.py
+```
+
+To run a specific test with verbose logging:
+
+```sh
+$ tox -- -vv --log-cli-level=INFO utils/tests/test_runner.py
 ```
 
 ## License
