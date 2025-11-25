@@ -38,6 +38,12 @@ export BENCH_VERS=$3
 export N=$4
 export server_ip=$5
 
+# Optional 6th parameter for test name
+if [ "$6" != "" ]
+then
+    export TEST_NAME=$6
+fi
+
 # ------------ run client ------------
 source env$BENCH_VERS/bin/activate 
 
@@ -50,10 +56,20 @@ which redis-benchmarks-spec-client-runner
 for i in $(eval echo "{1..$N}")
 do
     echo $i
-    redis-benchmarks-spec-client-runner --db_server_host $server_ip --db_server_port 6379 --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
+    if [ "$TEST_NAME" != "" ]
+    then
+        redis-benchmarks-spec-client-runner --db_server_host $server_ip --db_server_port 6379 --test ${TEST_NAME}.yml --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
+    else
+        redis-benchmarks-spec-client-runner --db_server_host $server_ip --db_server_port 6379 --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
+    fi
 done
 
 
 cd $HOMEWD
-python get_results.py -e $EXP_BUILD -r $N
+if [ "$TEST_NAME" != "" ]
+then
+    python get_results.py -e $EXP_BUILD -r $N -t $TEST_NAME
+else
+    python get_results.py -e $EXP_BUILD -r $N
+fi
 

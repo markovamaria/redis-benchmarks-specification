@@ -40,10 +40,12 @@ def main():
     parser = argparse.ArgumentParser(description='Get results from redis-benchmark runs.')
     parser.add_argument('--exp', '-e', type=str, help='Experiment name, e.g. gcc_default', required=True)
     parser.add_argument('--runs', '-r', type=int, help='Number of runs, e.g. 5', required=True)
+    parser.add_argument('--test', '-t', type=str, help='Test name, e.g. memtier_benchmark-1key-zrem-5M-elements-pipeline-1', required=False)
 
     args = parser.parse_args()
     exp_type = args.exp
     N = args.runs  # num runs
+    test_name = args.test
     dflist:list = []
 
     for r in range(1,N+1):
@@ -72,7 +74,10 @@ def main():
 
 
     # Save results file
-    results_filename = f'results_{exp_type}.csv'
+    if test_name:
+        results_filename = f'results_{exp_type}_{test_name}.csv'
+    else:
+        results_filename = f'results_{exp_type}.csv'
     res_df.to_csv(results_filename, index=False)
 
     # Copy results file to runs_<exp_type> folder

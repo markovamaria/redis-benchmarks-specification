@@ -30,6 +30,12 @@ then
     exit
 fi
 
+if [ "$6" = "" ]
+then
+    echo "6th param - test name, e.g. 'memtier_benchmark-1key-set-2M-elements-sadd-increasing'"
+    exit
+fi
+
 export HOMEWD=$PWD
 export COMP=$1
 export OPTION=$2
@@ -37,6 +43,7 @@ export EXP_BUILD="$COMP"_"$OPTION"
 export BENCH_VERS=$3
 export N=$4
 export server_ip=$5
+export TEST_NAME=$6
 
 # ------------ run client ------------
 source env$BENCH_VERS/bin/activate 
@@ -50,10 +57,10 @@ which redis-benchmarks-spec-client-runner
 for i in $(eval echo "{1..$N}")
 do
     echo $i
-    redis-benchmarks-spec-client-runner --db_server_host $server_ip --db_server_port 6379 --test memtier_benchmark-1key-set-2M-elements-sadd-increasing.yml --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
+    redis-benchmarks-spec-client-runner --db_server_host $server_ip --db_server_port 6379 --test ${TEST_NAME}.yml --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
 done
 
 
 cd $HOMEWD
-python get_results.py -e $EXP_BUILD -r $N
+python get_results.py -e $EXP_BUILD -r $N -t $TEST_NAME
 
