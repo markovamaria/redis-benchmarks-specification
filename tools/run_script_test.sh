@@ -45,12 +45,20 @@ export BENCH_VERS=$3
 export N=$4
 export TEST_NAME=$6
 
+# Optional 7th parameter for perf profiling
+USE_PERF="$7"
+
 source env$BENCH_VERS/bin/activate
 which python
 # ------------ run server ------------
 mkdir -p run_server_logs
 chmod +x ./r_servers/*
-numactl --physcpubind=1 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+if [ "$USE_PERF" = "perf" ]
+then
+    perf record -o run_server_logs/perf_$EXP_BUILD.data -g numactl --physcpubind=1 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+else
+    numactl --physcpubind=1 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+fi
 server_pid=$!
 sleep 1
 
@@ -69,6 +77,12 @@ do
     redis-benchmarks-spec-client-runner --db_server_host localhost --db_server_port 6379 --test ${TEST_NAME}.yml --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
 done
 kill -9 $server_pid >> kill__$EXP_BUILD.log
+
+# ------------ generate perf report if enabled ------------
+if [ "$USE_PERF" = "perf" ]
+then
+    perf report -i run_server_logs/perf_$EXP_BUILD.data --stdio > run_server_logs/perf_report_$EXP_BUILD.txt
+fi
 
 cd $HOMEWD
 python get_results.py -e $EXP_BUILD -r $N -t $TEST_NAME

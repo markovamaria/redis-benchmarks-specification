@@ -3,7 +3,7 @@
 echo Parameters:
 echo 1st param - compiler name, like 'gcc' / 'icx' / 'icc' / 'gcc-11' / 'clang-14'
 printf "2nd param - experiment name, like:\n
-'default' / 'O3_flto' / 'O3_flto_deps' /\n
+'default' / 'default_debug' / 'O3_flto' / 'O3_flto_deps' /\n
 'O3' / 'O3_deps' / 'O2_flto' / 'O2_flto_deps' /\n
 'O2' / 'O2_deps' / 'default_native' / 'O3_native' /\n
 'O2_flto_native' / 'O3_flto_native' / 'default_native_deps' / 'O3_native_deps' /\n
@@ -45,6 +45,11 @@ fi
 
 # ----------- OPTION SECTION ----------- #
 ## ---- O3 ---- ## 
+
+if [ "$OPTION" = "default_debug" ]; then
+    OPT=REDIS_CFLAGS='-g'
+    LDOPT=REDIS_LDFLAGS='-g'
+fi
 
 if [ "$OPTION" = "O3" ]; then
     OPT=REDIS_CFLAGS='-O3'
