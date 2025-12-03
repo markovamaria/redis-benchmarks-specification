@@ -55,7 +55,7 @@ mkdir -p run_server_logs
 chmod +x ./r_servers/*
 if [ "$USE_PERF" = "perf" ]
 then
-    perf record -o run_server_logs/perf_$EXP_BUILD.data -g numactl --physcpubind=1 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+    sudo perf record -o run_server_logs/perf_$EXP_BUILD.data -g numactl --physcpubind=1 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
 else
     numactl --physcpubind=1 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
 fi
@@ -81,7 +81,7 @@ kill -9 $server_pid >> kill__$EXP_BUILD.log
 # ------------ generate perf report if enabled ------------
 if [ "$USE_PERF" = "perf" ]
 then
-    perf report -i run_server_logs/perf_$EXP_BUILD.data --stdio > run_server_logs/perf_report_$EXP_BUILD.txt
+    sudo perf report -i run_server_logs/perf_$EXP_BUILD.data --stdio -f 2>&1 | tee run_server_logs/perf_report_$EXP_BUILD.txt
 fi
 
 cd $HOMEWD
