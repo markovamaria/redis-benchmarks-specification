@@ -27,7 +27,7 @@ echo "Generating flame graph from $PERF_DATA"
 
 # Step 1: Generate perf script
 echo "Step 1: Converting perf data to script format..."
-perf script -i "$PERF_DATA" > "$PERF_SCRIPT"
+sudo perf script -i "$PERF_DATA" > "$PERF_SCRIPT"
 
 # Step 2: Check if FlameGraph tools are available
 if ! command -v stackcollapse-perf.pl &> /dev/null
