@@ -76,7 +76,15 @@ do
     echo $i
     redis-benchmarks-spec-client-runner --db_server_host localhost --db_server_port 6379 --test ${TEST_NAME}.yml --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
 done
-kill -9 $server_pid >> kill__$EXP_BUILD.log
+
+# When using perf profiling, we need SIGTERM to allow perf to flush data
+if [ "$USE_PERF" = "perf" ]
+then
+    kill -TERM $server_pid >> kill__$EXP_BUILD.log
+    sleep 2  # Give perf time to write the data
+else
+    kill -9 $server_pid >> kill__$EXP_BUILD.log
+fi
 
 # ------------ generate perf report if enabled ------------
 if [ "$USE_PERF" = "perf" ]
