@@ -25,9 +25,21 @@ fi
 
 echo "Generating flame graph from $PERF_DATA"
 
+# Fix permissions on perf data file if needed
+if [ ! -r "$PERF_DATA" ]
+then
+    echo "Fixing permissions on perf data file..."
+    sudo chmod 644 "$PERF_DATA"
+fi
+
 # Step 1: Generate perf script
 echo "Step 1: Converting perf data to script format..."
-sudo perf script -i "$PERF_DATA" > "$PERF_SCRIPT"
+perf script -i "$PERF_DATA" > "$PERF_SCRIPT" 2>&1
+if [ ! -s "$PERF_SCRIPT" ]
+then
+    echo "Warning: perf script generated empty output, trying with sudo..."
+    sudo perf script -i "$PERF_DATA" > "$PERF_SCRIPT"
+fi
 
 # Step 2: Check if FlameGraph tools are available
 if ! command -v stackcollapse-perf.pl &> /dev/null
@@ -41,9 +53,23 @@ fi
 echo "Step 2: Folding stack traces..."
 stackcollapse-perf.pl "$PERF_SCRIPT" > "$FOLDED"
 
+if [ ! -s "$FOLDED" ]
+then
+    echo "Error: stackcollapse-perf.pl produced no output"
+    echo "Checking perf script size:"
+    ls -lh "$PERF_SCRIPT"
+    exit 1
+fi
+
 # Step 4: Generate the flame graph
 echo "Step 3: Generating flame graph SVG..."
 flamegraph.pl --color=java "$FOLDED" > "$FLAMEGRAPH"
+
+if [ ! -s "$FLAMEGRAPH" ]
+then
+    echo "Error: flamegraph.pl produced no output"
+    exit 1
+fi
 
 echo "Flame graph generated: $FLAMEGRAPH"
 echo "Open it in a web browser to view the interactive flame graph."

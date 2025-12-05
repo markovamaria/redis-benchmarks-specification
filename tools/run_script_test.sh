@@ -23,7 +23,7 @@ then
     exit
 fi
 
-if [ "$5" = ""]
+if [ "$5" = "" ]
 then
     echo 5th param - commit in format '1f76bb1'
     exit
