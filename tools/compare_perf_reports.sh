@@ -39,41 +39,49 @@ echo "File 2: $PERF_FILE2"
 echo "Output: $OUTPUT_DIR"
 echo "========================================"
 
+# Determine if we need sudo (try without first)
+PERF_CMD="perf"
+if ! perf report -i "$PERF_FILE1" --stdio &>/dev/null 2>&1; then
+    PERF_CMD="sudo perf"
+fi
+
+echo "Using command: $PERF_CMD"
+
 # 1. Generate basic perf reports
 echo ""
 echo "Step 1: Generating perf reports..."
-sudo perf report -i "$PERF_FILE1" --stdio > "$OUTPUT_DIR/${NAME1}_report.txt" 2>&1
-sudo perf report -i "$PERF_FILE2" --stdio > "$OUTPUT_DIR/${NAME2}_report.txt" 2>&1
+$PERF_CMD report -i "$PERF_FILE1" --stdio > "$OUTPUT_DIR/${NAME1}_report.txt" 2>&1
+$PERF_CMD report -i "$PERF_FILE2" --stdio > "$OUTPUT_DIR/${NAME2}_report.txt" 2>&1
 
 # 2. Extract top functions
 echo "Step 2: Extracting top 30 functions..."
 echo "=== TOP 30 FUNCTIONS: $NAME1 ===" > "$OUTPUT_DIR/top_functions_comparison.txt"
-sudo perf report -i "$PERF_FILE1" --stdio 2>/dev/null | grep -E "^\s+[0-9]+\.[0-9]+%\s+" | head -30 >> "$OUTPUT_DIR/top_functions_comparison.txt"
+$PERF_CMD report -i "$PERF_FILE1" --stdio 2>/dev/null | grep -E "^\s+[0-9]+\.[0-9]+%\s+" | head -30 >> "$OUTPUT_DIR/top_functions_comparison.txt"
 
 echo "" >> "$OUTPUT_DIR/top_functions_comparison.txt"
 echo "=== TOP 30 FUNCTIONS: $NAME2 ===" >> "$OUTPUT_DIR/top_functions_comparison.txt"
-sudo perf report -i "$PERF_FILE2" --stdio 2>/dev/null | grep -E "^\s+[0-9]+\.[0-9]+%\s+" | head -30 >> "$OUTPUT_DIR/top_functions_comparison.txt"
+$PERF_CMD report -i "$PERF_FILE2" --stdio 2>/dev/null | grep -E "^\s+[0-9]+\.[0-9]+%\s+" | head -30 >> "$OUTPUT_DIR/top_functions_comparison.txt"
 
 # 3. Extract detailed stats
 echo "Step 3: Extracting detailed statistics..."
 echo "=== DETAILED STATS: $NAME1 ===" > "$OUTPUT_DIR/detailed_stats_comparison.txt"
-sudo perf report -i "$PERF_FILE1" --stdio 2>/dev/null | head -100 >> "$OUTPUT_DIR/detailed_stats_comparison.txt"
+$PERF_CMD report -i "$PERF_FILE1" --stdio 2>/dev/null | head -100 >> "$OUTPUT_DIR/detailed_stats_comparison.txt"
 
 echo "" >> "$OUTPUT_DIR/detailed_stats_comparison.txt"
 echo "=== DETAILED STATS: $NAME2 ===" >> "$OUTPUT_DIR/detailed_stats_comparison.txt"
-sudo perf report -i "$PERF_FILE2" --stdio 2>/dev/null | head -100 >> "$OUTPUT_DIR/detailed_stats_comparison.txt"
+$PERF_CMD report -i "$PERF_FILE2" --stdio 2>/dev/null | head -100 >> "$OUTPUT_DIR/detailed_stats_comparison.txt"
 
 # 4. Get annotation with source if available
 echo "Step 4: Extracting annotation (if available)..."
-sudo perf annotate -i "$PERF_FILE1" > "$OUTPUT_DIR/${NAME1}_annotate.txt" 2>&1 || echo "Annotation not available for $NAME1"
-sudo perf annotate -i "$PERF_FILE2" > "$OUTPUT_DIR/${NAME2}_annotate.txt" 2>&1 || echo "Annotation not available for $NAME2"
+$PERF_CMD annotate -i "$PERF_FILE1" > "$OUTPUT_DIR/${NAME1}_annotate.txt" 2>&1 || echo "Annotation not available for $NAME1"
+$PERF_CMD annotate -i "$PERF_FILE2" > "$OUTPUT_DIR/${NAME2}_annotate.txt" 2>&1 || echo "Annotation not available for $NAME2"
 
 # 5. Compare function names
 echo "Step 5: Comparing function distributions..."
 echo "=== FUNCTION COMPARISON ===" > "$OUTPUT_DIR/function_diff.txt"
 
-sudo perf report -i "$PERF_FILE1" --stdio 2>/dev/null | grep -oE '\[[a-z_0-9\.]+\]|[a-z_][a-z_0-9]*' | sort | uniq -c | sort -rn | head -30 > "$OUTPUT_DIR/${NAME1}_functions.txt"
-sudo perf report -i "$PERF_FILE2" --stdio 2>/dev/null | grep -oE '\[[a-z_0-9\.]+\]|[a-z_][a-z_0-9]*' | sort | uniq -c | sort -rn | head -30 > "$OUTPUT_DIR/${NAME2}_functions.txt"
+$PERF_CMD report -i "$PERF_FILE1" --stdio 2>/dev/null | grep -oE '\[[a-z_0-9\.]+\]|[a-z_][a-z_0-9]*' | sort | uniq -c | sort -rn | head -30 > "$OUTPUT_DIR/${NAME1}_functions.txt"
+$PERF_CMD report -i "$PERF_FILE2" --stdio 2>/dev/null | grep -oE '\[[a-z_0-9\.]+\]|[a-z_][a-z_0-9]*' | sort | uniq -c | sort -rn | head -30 > "$OUTPUT_DIR/${NAME2}_functions.txt"
 
 echo "Top functions in $NAME1:" >> "$OUTPUT_DIR/function_diff.txt"
 cat "$OUTPUT_DIR/${NAME1}_functions.txt" >> "$OUTPUT_DIR/function_diff.txt"
