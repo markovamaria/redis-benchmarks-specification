@@ -17,6 +17,13 @@ sudo apt update
 sudo apt-get install iperf
 #supervisorctl stop 
 
+if grep -q 'Ubuntu 24.04' /etc/os-release; then
+    echo "Running on Ubuntu 24.04"
+    sudo apt install software-properties-common -y
+    sudo add-apt-repository ppa:deadsnakes/ppa -y
+    sudo apt update
+fi
+
 sudo DEBIAN_FRONTEND=noninteractive apt install python3.11-full -y
 sudo apt install build-essential python3.11-venv python3.11-dev -y
 python3.11 -m venv env$BENCH_VERS
