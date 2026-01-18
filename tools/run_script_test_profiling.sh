@@ -55,14 +55,14 @@ mkdir -p run_server_logs
 chmod +x ./r_servers/*
 if [ "$USE_PROFILING" = "perf" ]
 then
-    sudo perf record -o run_server_logs/perf_$EXP_BUILD.data -g numactl --physcpubind=1 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+    sudo perf record -o run_server_logs/perf_$EXP_BUILD.data -g numactl --cpunodebind=0 --membind=0 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
 elif [ "$USE_PROFILING" = "vtune" ]
 then
     . /opt/intel/oneapi/setvars.sh
     echo 0 | sudo tee /proc/sys/kernel/perf_event_paranoid > /dev/null
-    numactl --physcpubind=1 vtune -collect hotspots -knob sampling-mode=hw -knob enable-stack-collection=true -result-dir run_server_logs/vtune_$EXP_BUILD ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+    numactl --cpunodebind=0 --membind=0 vtune -collect hotspots -knob sampling-mode=hw -knob enable-stack-collection=true -result-dir run_server_logs/vtune_$EXP_BUILD ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
 else
-    numactl --physcpubind=1 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+    numactl --cpunodebind=0 --membind=0 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
 fi
 server_pid=$!
 sleep 1
@@ -79,7 +79,7 @@ which redis-benchmarks-spec-client-runner
 for i in $(eval echo "{1..$N}")
 do
     echo $i
-    numactl --physcpubind=2 redis-benchmarks-spec-client-runner --db_server_host localhost --db_server_port 6379 --test ${TEST_NAME}.yml --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
+    numactl --cpunodebind=1 --membind=1 redis-benchmarks-spec-client-runner --db_server_host localhost --db_server_port 6379 --test ${TEST_NAME}.yml --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
 done
 
 # When using perf profiling, we need SIGTERM to allow perf to flush data
