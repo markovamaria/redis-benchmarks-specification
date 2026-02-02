@@ -60,7 +60,16 @@ elif [ "$USE_PROFILING" = "vtune" ]
 then
     . /opt/intel/oneapi/setvars.sh
     echo 0 | sudo tee /proc/sys/kernel/perf_event_paranoid > /dev/null
-    numactl --cpunodebind=0 --membind=0 vtune -collect hotspots -knob sampling-mode=hw -knob enable-stack-collection=true -result-dir run_server_logs/vtune_$EXP_BUILD ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+    # -result-dir run_server_logs/vtune_$EXP_BUILD
+    # numactl --cpunodebind=0 --membind=0 vtune -collect hotspots -knob sampling-mode=hw -knob enable-stack-collection=true ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+    # set up VTUNE
+    # echo "# Fix VTune requirements" && \
+    # sudo sysctl -w kernel.perf_event_paranoid=0 && \
+    # sudo sysctl -w kernel.kptr_restrict=0 && \
+    # sudo sysctl -w kernel.yama.ptrace_scope=0 && \
+    # ulimit -s 65536
+    numactl  --cpunodebind=0 --membind=0 -- vtune -collect memory-access -knob analyze-mem-objects=true  -knob dram-bandwidth-limits=true ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
+    sleep 20
 else
     numactl --cpunodebind=0 --membind=0 ./r_servers/redis-server_$EXP_BUILD --protected-mode no --port 6379 --dir run_server_logs --logfile run_server_$EXP_BUILD.log --save "" &
 fi
@@ -82,13 +91,24 @@ do
     numactl --cpunodebind=1 --membind=1 redis-benchmarks-spec-client-runner --db_server_host localhost --db_server_port 6379 --test ${TEST_NAME}.yml --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
 done
 
+cd $HOMEWD
+
 # When using perf profiling, we need SIGTERM to allow perf to flush data
 if [ "$USE_PROFILING" = "perf" ]
 then
-    kill -TERM $server_pid >> kill__$EXP_BUILD.log
+    kill -2 $server_pid >> kill__$EXP_BUILD.log
     sleep 2  # Give perf time to write the data
+elif [ "$USE_PROFILING" = "vtune" ]
+then
+    . /opt/intel/oneapi/setvars.sh
+    vtune -command stop
+    #    -r "$(ls -td r0*/ | head -1)"
+    # vtune -r $PWD/run_server_logs/vtune_$EXP_BUILD -command stop
+    # pkill -SIGINT vtune
 else
-    kill -9 $server_pid >> kill__$EXP_BUILD.log
+    ./redis_$EXP_BUILD/src/redis-cli shutdown
+    wait  $server_pid >> kill__$EXP_BUILD.log
+
 fi
 
 # ------------ generate perf report if enabled ------------
@@ -98,9 +118,8 @@ then
 fi
 
 # ------------ generate vtune report if enabled ------------
-if [ "$USE_PROFILING" = "vtune" ]
+if [ "$USE_PROFILING" = "vtune11" ]
 then
-    . /opt/intel/oneapi/setvars.sh
     echo "Generating VTune summary report (CSV)..."
     vtune -report summary -result-dir run_server_logs/vtune_$EXP_BUILD -format csv | tee run_server_logs/vtune_summary_$EXP_BUILD.csv
     echo "Generating VTune hotspots report (CSV)..."
@@ -109,6 +128,6 @@ then
     vtune -report callstacks -result-dir run_server_logs/vtune_$EXP_BUILD -format csv | tee run_server_logs/vtune_callstacks_$EXP_BUILD.csv
 fi
 
-cd $HOMEWD
+# cd $HOMEWD
 python3 get_results.py -e $EXP_BUILD -r $N -t $TEST_NAME
 

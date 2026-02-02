@@ -72,9 +72,16 @@ do
         numactl --cpunodebind=1 --membind=1 redis-benchmarks-spec-client-runner --db_server_host localhost --db_server_port 6379 --client_aggregated_results_folder ./run_"$i" --flushall_on_every_test_start --flushall_on_every_test_end |& tee -a client_runs_"$EXP_RUNS".log
     fi
 done
-kill -9 $server_pid >> kill__$EXP_BUILD.log
 
 cd $HOMEWD
+
+# gracefully shut down a Redis server and wait for it to exit
+./redis_$EXP_BUILD/src/redis-cli shutdown
+wait  $server_pid >> kill__$EXP_BUILD.log
+
+
+# ------------ create resutls ------------
+
 if [ "$TEST_NAME" != "" ]
 then
     python get_results.py -e $EXP_BUILD -r $N -t $TEST_NAME

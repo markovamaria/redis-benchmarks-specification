@@ -42,5 +42,4 @@ sudo usermod -aG docker $USER
 ls env$BENCH_VERS/bin/activate
 
 echo --- Installation is finished, rebooting ... --
-sudo reboot
 

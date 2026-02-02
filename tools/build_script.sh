@@ -249,9 +249,9 @@ then
 else
     if [ "$export_only" = true ]
     then
-        REDIS_CFLAGS=$REDIS_CFLAGS REDIS_LDFLAGS=$REDIS_LDFLAGS CC=$YCC CXX=$YCXX make V=1 |& tee build_$EXP_BUILD.log
+        REDIS_CFLAGS=$REDIS_CFLAGS REDIS_LDFLAGS=$REDIS_LDFLAGS CC=$YCC CXX=$YCXX make V=1 -j1 |& tee build_$EXP_BUILD.log
     else
-        CC=$YCC CXX=$YCXX make "$OPT" "$LDOPT" V=1 |& tee build_$EXP_BUILD.log
+        CC=$YCC CXX=$YCXX make "$OPT" "$LDOPT" V=1 -j1 |& tee build_$EXP_BUILD.log
     fi
 fi
  
