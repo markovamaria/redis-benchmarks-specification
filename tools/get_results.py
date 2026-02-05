@@ -51,7 +51,7 @@ def main():
     for r in range(1,N+1):
         file = 'runs_' + exp_type + '/run_' + str(r) + '/aggregate-results.csv'  
         df = pd.read_csv(file)
-        df = df[df['Metric JSON Path'].str.contains("Ops/sec")].drop(columns=["Metric JSON Path"]).rename(columns={"Metric Value": "Run" + str(r) })
+        df = df[df['Metric JSON Path'].str.contains('Totals."Ops/sec"')].drop(columns=["Metric JSON Path"]).rename(columns={"Metric Value": "Run" + str(r) })
         dflist.append(df)
 
     dflist = [df.set_index('Test Name') for df in dflist]
